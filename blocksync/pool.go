@@ -502,6 +502,7 @@ func (pool *BlockPool) makeNextRequester(nextHeight int64) {
 
 func (pool *BlockPool) sendRequest(height int64, peerID p2p.ID) {
 	if !pool.IsRunning() {
+		pool.Logger.Debug("skipping request because pool is not running", "height", height, "peer", peerID)
 		return
 	}
 	pool.requestsCh <- BlockRequest{height, peerID}
