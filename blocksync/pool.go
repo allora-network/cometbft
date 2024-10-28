@@ -311,6 +311,7 @@ func (pool *BlockPool) RedoRequest(height int64) p2p.ID {
 func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, extCommit *types.ExtendedCommit, blockSize int) error {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
+	pool.Logger.Debug("AddBlock", "peer", peerID, "block", block.Height)
 
 	if extCommit != nil && block.Height != extCommit.Height {
 		err := fmt.Errorf("block height %d != extCommit height %d", block.Height, extCommit.Height)
@@ -505,6 +506,7 @@ func (pool *BlockPool) makeNextRequester(nextHeight int64) {
 }
 
 func (pool *BlockPool) sendRequest(height int64, peerID p2p.ID) {
+	pool.Logger.Debug("sendRequest", "height", height, "peer", peerID)
 	if !pool.IsRunning() {
 		pool.Logger.Debug("skipping request because pool is not running", "height", height, "peer", peerID)
 		return
@@ -513,6 +515,7 @@ func (pool *BlockPool) sendRequest(height int64, peerID p2p.ID) {
 }
 
 func (pool *BlockPool) sendError(err error, peerID p2p.ID) {
+	pool.Logger.Debug("sendError", "peer", peerID, "err", err)
 	if !pool.IsRunning() {
 		return
 	}
@@ -664,7 +667,11 @@ func (bpr *bpRequester) OnStart() error {
 }
 
 // Returns true if the peer(s) match and block doesn't already exist.
-func (bpr *bpRequester) setBlock(block *types.Block, extCommit *types.ExtendedCommit, peerID p2p.ID) bool {
+func (bpr *bpRequester) setBlock(block *types.Block, extCommit *types.ExtendedCommit, peerID p2p.ID) (ok bool) {
+	defer func() {
+		bpr.Logger.Debug("setBlock", "peer", peerID, "block", block.Height, "ok", ok)
+	}()
+
 	bpr.mtx.Lock()
 	if bpr.peerID != peerID && bpr.secondPeerID != peerID {
 		bpr.mtx.Unlock()
