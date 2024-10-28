@@ -28,6 +28,7 @@ import (
 	"github.com/cometbft/cometbft/libs/log"
 	cmtrand "github.com/cometbft/cometbft/libs/rand"
 	"github.com/cometbft/cometbft/mempool"
+	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/cometbft/cometbft/proxy"
@@ -1077,7 +1078,8 @@ func makeBlockchainFromWAL(wal WAL) ([]*types.Block, []*types.ExtendedCommit, er
 		case *types.PartSetHeader:
 			thisBlockParts = types.NewPartSetFromHeader(*p)
 		case *types.Part:
-			_, err := thisBlockParts.AddPart(p)
+			peerID := p2p.ID(cmtrand.Bytes(20))
+			_, err := thisBlockParts.AddPart(p, peerID)
 			if err != nil {
 				return nil, nil, err
 			}

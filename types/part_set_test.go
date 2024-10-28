@@ -9,6 +9,7 @@ import (
 
 	"github.com/cometbft/cometbft/crypto/merkle"
 	cmtrand "github.com/cometbft/cometbft/libs/rand"
+	"github.com/cometbft/cometbft/p2p"
 )
 
 const (
@@ -35,18 +36,20 @@ func TestBasicPartSet(t *testing.T) {
 	assert.True(t, partSet2.HasHeader(partSet.Header()))
 	for i := 0; i < int(partSet.Total()); i++ {
 		part := partSet.GetPart(i)
+		peerID := p2p.ID(cmtrand.Bytes(20))
 		// t.Logf("\n%v", part)
-		added, err := partSet2.AddPart(part)
+		added, err := partSet2.AddPart(part, peerID)
 		if !added || err != nil {
 			t.Errorf("failed to add part %v, error: %v", i, err)
 		}
 	}
 	// adding part with invalid index
-	added, err := partSet2.AddPart(&Part{Index: 10000})
+	peerID := p2p.ID(cmtrand.Bytes(20))
+	added, err := partSet2.AddPart(&Part{Index: 10000}, peerID)
 	assert.False(t, added)
 	assert.Error(t, err)
 	// adding existing part
-	added, err = partSet2.AddPart(partSet2.GetPart(0))
+	added, err = partSet2.AddPart(partSet2.GetPart(0), peerID)
 	assert.False(t, added)
 	assert.Nil(t, err)
 
@@ -74,7 +77,8 @@ func TestWrongProof(t *testing.T) {
 	// Test adding a part with wrong trail.
 	part := partSet.GetPart(0)
 	part.Proof.Aunts[0][0] += byte(0x01)
-	added, err := partSet2.AddPart(part)
+	peerID := p2p.ID(cmtrand.Bytes(20))
+	added, err := partSet2.AddPart(part, peerID)
 	if added || err == nil {
 		t.Errorf("expected to fail adding a part with bad trail.")
 	}
@@ -82,7 +86,7 @@ func TestWrongProof(t *testing.T) {
 	// Test adding a part with wrong bytes.
 	part = partSet.GetPart(1)
 	part.Bytes[0] += byte(0x01)
-	added, err = partSet2.AddPart(part)
+	added, err = partSet2.AddPart(part, peerID)
 	if added || err == nil {
 		t.Errorf("expected to fail adding a part with bad bytes.")
 	}
@@ -90,7 +94,7 @@ func TestWrongProof(t *testing.T) {
 	// Test adding a part with wrong proof index.
 	part = partSet.GetPart(2)
 	part.Proof.Index = 1
-	added, err = partSet2.AddPart(part)
+	added, err = partSet2.AddPart(part, peerID)
 	if added || err == nil {
 		t.Errorf("expected to fail adding a part with bad proof index.")
 	}
@@ -98,7 +102,7 @@ func TestWrongProof(t *testing.T) {
 	// Test adding a part with wrong proof total.
 	part = partSet.GetPart(3)
 	part.Proof.Total = int64(partSet.Total() - 1)
-	added, err = partSet2.AddPart(part)
+	added, err = partSet2.AddPart(part, peerID)
 	if added || err == nil {
 		t.Errorf("expected to fail adding a part with bad proof total.")
 	}

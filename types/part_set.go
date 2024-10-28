@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 
 	"github.com/cometbft/cometbft/crypto/merkle"
 	"github.com/cometbft/cometbft/libs/bits"
@@ -12,6 +13,7 @@ import (
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	cmtmath "github.com/cometbft/cometbft/libs/math"
 	cmtsync "github.com/cometbft/cometbft/libs/sync"
+	"github.com/cometbft/cometbft/p2p"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 )
 
@@ -275,7 +277,7 @@ func (ps *PartSet) Total() uint32 {
 	return ps.total
 }
 
-func (ps *PartSet) AddPart(part *Part) (bool, error) {
+func (ps *PartSet) AddPart(part *Part, peerID p2p.ID) (bool, error) {
 	// TODO: remove this? would be preferable if this only returned (false, nil)
 	// when its a duplicate block part
 	if ps == nil {
@@ -297,12 +299,14 @@ func (ps *PartSet) AddPart(part *Part) (bool, error) {
 
 	// The proof should be compatible with the number of parts.
 	if part.Proof.Total != int64(ps.total) {
-		return false, ErrPartSetInvalidProof
+		log.Println("proof total does not match part set total", part.Proof.Total, ps.total, "from peer", peerID)
+		return false, fmt.Errorf("%w: proof total %d does not match part set total %d from peer %s", ErrPartSetInvalidProof, part.Proof.Total, ps.total, peerID)
 	}
 
 	// Check hash proof
 	if part.Proof.Verify(ps.Hash(), part.Bytes) != nil {
-		return false, ErrPartSetInvalidProof
+		log.Println("proof does not verify for part", part.Index, "from peer", peerID)
+		return false, fmt.Errorf("%w: proof does not verify for part %d from peer %s", ErrPartSetInvalidProof, part.Index, peerID)
 	}
 
 	// Add part

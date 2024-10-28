@@ -1974,7 +1974,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return false, nil
 	}
 
-	added, err = cs.ProposalBlockParts.AddPart(part)
+	added, err = cs.ProposalBlockParts.AddPart(part, peerID)
 	if err != nil {
 		if errors.Is(err, types.ErrPartSetInvalidProof) || errors.Is(err, types.ErrPartSetUnexpectedIndex) {
 			cs.metrics.BlockGossipPartsReceived.With("matches_current", "false").Add(1)
